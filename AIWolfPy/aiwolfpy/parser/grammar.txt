@@ -1,0 +1,44 @@
+subject: agent | "ANY"
+target: agent | "ANY"
+role: "VILLAGER" | "SEER" | "MEDIUM" | "BODYGUARD" | "WEREWOLF" | "POSSESSED" | "ANY"
+specie: "HUMAN" | "WEREWOLF" | "ANY"
+talk_number: SIGNED_NUMBER
+day_number: SIGNED_NUMBER
+
+agent: "Agent"(SIGNED_NUMBER)
+
+knowledge: ("ESTIMATE" | "COMINGOUT") target role
+actions: ("DIVINATION" | "GUARD" | "VOTE" | "ATTACK") target
+past_actions1: ("DIVINED" | "IDENTIFIED") target specie
+past_actions2: ("GUARDED" | "VOTED" | "ATTACKED") target
+agreement: ("AGREE" | "DISAGREE") talk_number
+flow: "OVER" | "SKIP"
+
+unsubject_sentences: (knowledge | actions | past_actions1 | past_actions2 | agreement)
+sentences: (subject unsubject_sentences | unsubject_sentences)
+
+nested_sentences: "(" sentences ")"
+
+actions_operators: ("REQUEST" | "INQUIRE") target nested_sentences
+reasoning_operators: "BECAUSE" nested_sentences nested_sentences
+time_operators: "DAY" day_number nested_sentences
+not_operator: "NOT" nested_sentences
+logic_operators: ("AND" | "OR" | "XOR") (nested_sentences)+
+non_operator: flow |  knowledge | actions | past_actions1 | past_actions2 | agreement
+
+unsubject_operators: actions_operators
+                   | reasoning_operators
+                   | time_operators
+                   | not_operator
+                   | logic_operators
+                   | non_operator
+operators: (subject unsubject_operators | unsubject_operators)
+
+string: ESCAPED_STRING
+number: SIGNED_NUMBER
+
+%import common.ESCAPED_STRING
+%import common.ESCAPED_STRING
+%import common.SIGNED_NUMBER
+%import common.WS
+%ignore WS

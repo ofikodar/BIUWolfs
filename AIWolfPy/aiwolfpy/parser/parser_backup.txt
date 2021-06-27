@@ -1,0 +1,32 @@
+subject: agent | "ANY"
+target: agent | "ANY"
+role: "VILLAGER" | "SEER" | "MEDIUM" | "BODYGUARD" | "WEREWOLF" | "POSSESSED" | "ANY"
+specie: "HUMAN" | "WEREWOLF" | "ANY"
+talk_number: SIGNED_NUMBER
+day_number: SIGNED_NUMBER
+
+agent: "Agent"(SIGNED_NUMBER)
+
+knowledge: subject ["ESTIMATE" | "COMINGOUT"] target role
+actions: subject ["DIVINATION" | "GUARD" | "VOTE" | "ATTACK"] target
+past_actions1: subject ["DIVINED" | "IDENTIFIED"] target specie
+past_actions2: subject ["GUARDED" | "VOTED" | "ATTACKED"] target
+agreement: subject ["AGREE" | "DISAGREE"] talk_number
+flow: "OVER" | "SKIP"
+
+nested_sentences: "(" [knowledge | actions | past_actions1 | past_actions2 | agreement] ")"
+
+actions_operators: subject ["REQUEST" | "INQUIRE"] target nested_sentences
+reasoning_operators: subject "BECAUSE" nested_sentences nested_sentences
+time_operators: subject "DAY" day_number nested_sentences
+not_operator: subject "NOT" nested_sentences
+logic_operators: subject ["AND" | "OR" | "XOR"] (nested_sentences)+
+non_operator: flow |  knowledge | actions | past_actions1 | past_actions2 | agreement
+
+operators: actions_operators | reasoning_operators | time_operators | not_operator | logic_operators | non_operator
+
+
+%import common.ESCAPED_STRING
+%import common.SIGNED_NUMBER
+%import common.WS
+%ignore WS
