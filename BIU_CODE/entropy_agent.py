@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.special import softmax
 from model import Model
-from protocol_parser import is_protocol_correct
+# from protocol_parser import is_protocol_correct
 
 import aiwolfpy
 import aiwolfpy.contentbuilder as cb
@@ -14,14 +14,20 @@ myname = 'BIU wolfs'
 WEREWOLF_ROLE = "WEREWOLF"
 POSSESSED_ROLE = "POSSESSED"
 WHISPER_REQUESTS = 'WHISPER'
+VILLAGER_ROLE = "VILLAGER"
+HUMAN_SPECIES = "HUMAN"
 
-dummy_sentences = ["I’ m going to vote for Agent[%s] tonight",
-                   "Greeting. Agent[%s] Did you get what you wanted?",
-                   "I won’t tell you",
-                   "I think the vote will speak for itself",
-                   "We will wait for the vote and see who is right",
-                   "I'll keep the right to silence in this round"]
-
+dummy_sentences = ["Depending on what kind of questions everyone asks, I can assign the role of the person who asked.",
+                   "I don't know who to vote because I'm crazy.",
+                   "I'm not sure who to vote for.",
+                   "'ll keep the right to silence in this round",
+                   "We will wait for the vote and see who is right."
+                   "I think the vote will speak for itself.",
+                   "I won’t tell you"]
+# cb.comingout(1, VILLAGER_ROLE),
+# cb.request(cb.guard(1)),
+# cb.estimate(1, VILLAGER_ROLE),
+# cb.identified(1, HUMAN_SPECIES)
 
 class EntropyOutlierAgent(object):
     def __init__(self, agent_name, n=3, natural_language=False):
@@ -47,7 +53,7 @@ class EntropyOutlierAgent(object):
 
     # new information (no return)
     def update(self, base_info, diff_data, request):
-        print(diff_data)  # TODO: del it
+        # print(diff_data)  # TODO: del it
         self.base_info = base_info
         if not diff_data.empty:
             self.diff_data = pd.concat([self.diff_data, diff_data])
@@ -70,8 +76,8 @@ class EntropyOutlierAgent(object):
     def talk(self):
         if self.message_queue:
             return self.message_queue.pop()
-        if self.day == 1:
-            return cb.skip()
+        # if self.day == 1:
+        #     return cb.skip()
         response = self.model.generate(max_length=100, best_of_k=100)
         if not response:
             return cb.over()
@@ -104,7 +110,7 @@ class EntropyOutlierAgent(object):
 
     def divine(self):
         if not hasattr(self, 'outlier_probabilities'):
-            return self.base_info['agentIdx']
+            return self.my_idx
         idx = self.outlier_probabilities.argmax()
         return self._idx2agent(idx)
 
@@ -166,8 +172,12 @@ class EntropyOutlierAgent(object):
 
         # normalize hate
         hate_sum = self.agent2hate.sum()
-        if boldness_sum != 0:
+        if hate_sum != 0:
             self.agent2hate /= hate_sum
+            # print(self.agent2hate)
+            # print(hate_sum)
+
+    # utils functions #
 
     def _unsave_agents(self):
         return (agent_idx for agent_idx in self.agents if agent_idx not in self.save_agents)
@@ -182,16 +192,16 @@ class EntropyOutlierAgent(object):
 
     def _reset_agent(self):
         if self.natural_language:
-            self.model = Model(self.n, is_protocol_correct)
+            # self.model = Model(self.n, is_protocol_correct)
+            self.model = Model(self.n)
         else:
             self.model = Model(self.n)
         self.day = 1
-        self.message_queue = []
+        self.message_queue = [] + dummy_sentences
 
     def _reset_diff_data(self):
         self.diff_data = pd.DataFrame({'day': [], 'type': [], 'idx': [], 'turn': [], 'agent': [], 'text': []})
 
-    # utils functions
     @staticmethod
     def _text_from_diff_data(diff_data, text_type='talk'):
         return diff_data[diff_data['type'] == text_type]['text'].to_list()
