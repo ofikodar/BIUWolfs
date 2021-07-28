@@ -13,7 +13,15 @@ myname = 'BIU wolfs'
 
 WEREWOLF_ROLE = "WEREWOLF"
 POSSESSED_ROLE = "POSSESSED"
-WHISPER_REQUESTS == 'WHISPER'
+WHISPER_REQUESTS = 'WHISPER'
+
+dummy_sentences = ["I’ m going to vote for Agent[%s] tonight",
+                   "Greeting. Agent[%s] Did you get what you wanted?",
+                   "I won’t tell you",
+                   "I think the vote will speak for itself",
+                   "We will wait for the vote and see who is right",
+                   "I'll keep the right to silence in this round"]
+
 
 class EntropyOutlierAgent(object):
     def __init__(self, agent_name, n=3, natural_language=False):
@@ -50,6 +58,7 @@ class EntropyOutlierAgent(object):
 
     # Start of the day (no return)
     def dayStart(self):
+        # if "".join(EntropyOutlierAgent._text_from_diff_data(self.diff_data))
         self._reset_diff_data()
         self.agent2entropy = np.zeros(len(self.agents2idx))
         self.agent2boldness = np.zeros(len(self.agents2idx))
@@ -69,7 +78,7 @@ class EntropyOutlierAgent(object):
         return response
 
     def whisper(self):
-        return cb.attack(self.attack())
+        return cb.attack(int(self.attack()))
 
     # targetted actions: Require the id of the target
     # agent as the return
@@ -115,10 +124,14 @@ class EntropyOutlierAgent(object):
     def _update_state(self):
         # fit model
         self.day = int(self.diff_data['day'].max()) if not self.diff_data.empty else 1
-        sentence_list = EntropyOutlierAgent._text_from_diff_data(self.diff_data)  # unite all text
+        sentence_list = EntropyOutlierAgent._text_from_diff_data(self.diff_data)
         self.model.fit(sentence_list, self.day)
         # joint all text
         text = "".join(sentence_list)
+
+        # join all whispers
+        if self.is_evil:
+            whispers = EntropyOutlierAgent._text_from_diff_data(self.diff_data, text_type="whisper")
         for agent_idx in self._unsave_agents():
             if agent_idx in self.save_agents:
                 continue
@@ -136,8 +149,9 @@ class EntropyOutlierAgent(object):
             self.agent2entropy[idx] = self.model.entropy(agent_sentences)
 
             # update boldness
-            # TODO: add whisper
             self.agent2boldness[idx] = text.count(f"Agent[{idx_str}]")
+            if self.is_evil:
+                self.agent2boldness[idx] += whispers.count(f"Agent[{idx_str}]")
 
             # update hate
             self.agent2hate[idx] = sum([sentence.count(self.my_idx_str) for sentence in agent_sentences])
@@ -179,8 +193,8 @@ class EntropyOutlierAgent(object):
 
     # utils functions
     @staticmethod
-    def _text_from_diff_data(diff_data):
-        return diff_data[diff_data['type'] == 'talk']['text'].to_list()
+    def _text_from_diff_data(diff_data, text_type='talk'):
+        return diff_data[diff_data['type'] == text_type]['text'].to_list()
 
 
 agent = EntropyOutlierAgent(myname)
